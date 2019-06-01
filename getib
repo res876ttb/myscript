@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+
+import subprocess
+import time
+import argparse
+import pylib.win as win
+
+parser = argparse.ArgumentParser()
+parser.add_argument('node', help='The node to be monitored. ex: apollo32,apollo33')
+parser.add_argument('--dump', help='The path to output log file. Output format is csv.', default='')
+args = parser.parse_args()
+
+nodes = args.node.split(',')
+dumpPath = args.dump
+dump = False
+if dumpPath:
+  dump = True
+
+win.init()
+
+ibstats = {}
+for node in nodes:
+  ibstats[node] = {'prev': {'send': 0, 'recv': 0}, 'cur': {'send': 0, 'recv': 0}}
+
+p = subprocess.Popen('ibqueryerrors --counters'.split(' '), stdout=subprocess.PIPE)
+stdout, stderr = p.communicate()
+t1 = time.time()
+t2 = t1
+lines = stdout.decode('utf-8').split('\n')[:-1]
+for i in range(len(lines)):
+  for node in nodes:
+    if node in lines[i]:
+      info = lines[i + 1].split('[')
+      sendctr = int(info[1].split('(')[0].split(' == ')[1])
+      recvctr = int(info[2].split('(')[0].split(' == ')[1])
+      ibstats[node]['prev']['send'] = sendctr
+      ibstats[node]['prev']['recv'] = recvctr
+      ibstats[node]['cur']['send'] = sendctr
+      ibstats[node]['cur']['recv'] = recvctr
+
+fp = None
+if dump:
+  fp = open(dumpPath, 'w')
+
+while True:
+  t1 = t2
+  p = subprocess.Popen('sudo ibqueryerrors --counters'.split(' '), stdout=subprocess.PIPE)
+  stdout, stderr = p.communicate()
+  t2 = time.time()
+  lines = stdout.decode('utf-8').split('\n')[:-1]
+  if dump:
+    fp.write('\n')
+    fp.write('%f\n' % time.time())
+  stringBuff = []
+  for i in range(len(lines)):
+    for node in nodes:
+      if node in lines[i]:
+        info = lines[i + 1].split('[')
+        sendctr = info[1].split('(')[0].split(' == ')[1]
+        recvctr = info[2].split('(')[0].split(' == ')[1]
+        ibstats[node]['prev']['send'] = ibstats[node]['cur']['send']
+        ibstats[node]['prev']['recv'] = ibstats[node]['cur']['recv']
+        ibstats[node]['cur']['send'] = int(sendctr)
+        ibstats[node]['cur']['recv'] = int(recvctr)
+        sendSpeed = (ibstats[node]['cur']['send'] - ibstats[node]['prev']['send']) / 1048576 * 4 / (t2 - t1)
+        recvSpeed = (ibstats[node]['cur']['recv'] - ibstats[node]['prev']['recv']) / 1048576 * 4 / (t2 - t1)
+        stringBuff.append('Node %15s --- Send %13.3f MB/s | Recv %13.3f MB/s' % (node, sendSpeed, recvSpeed))
+        if dump:
+          fp.write('%s,%f,%f\n' % (node, sendSpeed, recvSpeed))
+  stringBuff.sort()
+  for line in stringBuff:
+    win.print(line)
+  win.flush()
+  time.sleep(1)
+

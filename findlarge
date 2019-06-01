@@ -1,0 +1,88 @@
+#!/usr/bin/env python3.6
+
+import os,sys,argparse
+from pathlib import Path as path
+from pathlib import PosixPath as pp
+
+# setup arguments
+parser = argparse.ArgumentParser(
+  description='Find the file large than the size your designation.'
+)
+parser.add_argument(
+  '-s', '--size',
+  dest='size', 
+  help='The threshould that you assign. For example, 20K, 100M, 23.5G. The available unit is K, M, G, and P. Default is 100M.', 
+  default="100M"
+)
+parser.add_argument(
+  '-g', '--greater', 
+  help='Sthow the file that is larger than "size". -g is turn on by default.', 
+  action='store_true'
+)
+parser.add_argument(
+  '-l', '--less', 
+  help='Show the file that is smaller than "size". If this option is specified, then -g will be turned off.', 
+  action='store_true'
+)
+parser.add_argument(
+  '-a',
+  help='Parse the invisible files and directories.',
+  action='store_true'
+)
+parser.add_argument(
+  '-d', '--show-dir',
+  help='Show directory which is parsed.',
+  action='store_true'
+)
+parser.add_argument(
+  '-r', '--remove',
+  help='Remove the found files.',
+  action='store_true'
+)
+
+arg = parser.parse_args()
+size = arg.size
+greater = True
+less = arg.less
+dot = arg.a
+show_dir = arg.show_dir
+remove = arg.remove
+
+# convert size to number
+if 'K' in size:
+  size = int(size.split('K')[0]) * 1024 ** 1
+elif 'M' in size: 
+  size = int(size.split('M')[0]) * 1024 ** 2
+elif 'G' in size:
+  size = int(size.split('G')[0]) * 1024 ** 3
+elif 'P' in size:
+  size = int(size.split('P')[0]) * 1024 ** 4
+else:
+  size = int(size)
+
+# parse directory
+def parse(p):
+  cd = [x for x in p.iterdir() if x.is_dir()]
+  fs = [x for x in p.iterdir() if x.is_file()]
+  for i in fs:
+    if not dot and i.name[0] == '.':
+      continue
+    else:
+      if less and i.stat().st_size <= size:
+        print(i.stat().st_size, i)
+        if remove:
+          os.remove(i.resolve())
+      elif greater and i.stat().st_size >= size:
+        print(i.stat().st_size, i)
+        if remove:
+          os.remove(i.resolve())
+  for i in cd:
+    if not dot and i.name[0] == '.':
+      continue
+    else:
+      if show_dir:
+        print('> In directory:', i.resolve())
+      parse(i)
+
+parse(path('.'))
+# print(arg)

@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+import os, time, subprocess, argparse
+import pylib.win as win
+
+win.init()
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--log', help='Save log to file', action='store_true')
+parser.add_argument('--log_path', help='Path to log file', default='%s/.%s.log' % (os.environ['HOME'], time.time()))
+args = parser.parse_args()
+
+f = None
+if args.log:
+  f = open('%s' % args.log_path, 'w')
+
+while True:
+  p = subprocess.Popen('date', stdout=subprocess.PIPE)
+  date, b = p.communicate()
+  p = subprocess.Popen('who', stdout=subprocess.PIPE)
+  who, b = p.communicate()
+
+  win.print(date.decode('utf-8'))
+  win.print(who.decode('utf-8'))
+  if args.log and who != b'': 
+    f.write(date.decode('utf-8'))
+    f.write(who.decode('utf-8'))
+  win.flush()
+  time.sleep(2)

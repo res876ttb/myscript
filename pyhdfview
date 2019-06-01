@@ -1,0 +1,77 @@
+#!/usr/bin/env python3.6
+
+import h5py as hp
+import numpy as np
+import os,sys,json
+from argparse import ArgumentParser
+
+parser = ArgumentParser()
+parser.add_argument('file', help='The statepoint file of openmc')
+parser.add_argument('-k', help='Show the value of k-eff', action='store_true', dest='showk')
+parser.add_argument('-j', help='Convert statepoint into json format. After convert, a file named statepoint.json will be generated.', action='store_true', dest='json')
+
+args = parser.parse_args()
+filename = args.file
+showk = args.showk
+sjson = args.json
+
+f = hp.File(filename, 'r')
+f2 = hp.File('.pyssp_test', 'w')
+group, dataset = f2.create_group("group"), f2.create_dataset('dataset', (100,), dtype='i8')
+data = {}
+
+def printGroup(g, parent):
+  r = {}
+  for i in g:
+    if type(g[i])==type(group):
+      r[i] = printGroup(g[i], parent + '/' + i)
+    elif type(g[i])==type(dataset):
+      if type(g[i].value) == np.bytes_:
+        r[i] = g[i].value.decode("utf-8")
+      elif type(g[i].value) == np.ndarray:
+        r[i] = g[i].value.tolist()
+      else:
+        r[i] = g[i].value.item()
+      print('%s,\n %s' % (parent + '/' + i, str(g[i].value)))
+      print()
+  return r
+
+def parse_source_bank(sb):
+  r = []
+  for i in sb:
+    r.append((i[0],i[1].tolist(),i[2].tolist(),i[3],i[4]))
+  return r
+
+if showk:
+  print('k_abs_tra    = %s' % str(f['k_abs_tra'].value))
+  print('k_col_abs    = %s' % str(f['k_col_abs'].value))
+  print('k_col_tra    = %s' % str(f['k_col_tra'].value))
+  print('k_combined   = %s' % str(f['k_combined'].value))
+  print('k_generation = %s' % str(f['k_generation'].value))
+else:
+  for i in f:
+    if type(f[i])==type(group):
+      data[i] = printGroup(f[i], i)
+    elif type(f[i])==type(dataset):
+      if i == 'source_bank':
+        data[i] = parse_source_bank(f[i].value.tolist())
+        print('%s, length: %d\n %s' % (i, len(f[i].value.tolist()), str(f[i].value)))
+      else:
+        if type(f[i].value) == np.bytes_:
+          data[i] = f[i].value.decode("utf-8")
+        elif type(f[i].value) == np.ndarray:
+          data[i] = f[i].value.tolist()
+        else:
+          data[i] = f[i].value.item()
+        print('%s,\n %s' % (i,str(f[i].value)))
+        print()
+
+if sjson:
+  with open('statepoint.json', 'w') as js:
+    json.dump(data, js, indent=2)
+
+f.close()
+f2.close()
+
+os.system('rm -f .pyssp_test')
+

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+tmux new-session \; \
+  send-keys "htop" Enter \; \
+  split-window -h \; \
+  split-window -v \; \
+  send-keys "ssh art4" Enter \; \
+  send-keys "htop" Enter \; \
+  selectp -t 1 \; \
+  split-window -v \; \
+  send-keys "ssh art3" Enter \; \
+  send-keys "htop" Enter \; \
+  selectp -t 3 \; \
+  send-keys "ssh art2" Enter \; \
+  send-keys "htop" Enter \; \
+  new-window \; \
+  attach
+
