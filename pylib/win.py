@@ -13,13 +13,13 @@ def tear_down():
 def print(line, highlight=False):
   global lineno
   if '\n' in line:
-    lines = line.split('\n')
+    lines = line.split('\n')[:-1]
   else:
     lines = [line]
   for line in lines:
     try:
+      line += ' ' * (win.getmaxyx()[1] - len(line))
       if highlight:
-        line += ' ' * win.getmaxyx()[1] - len(line)
         win.addstr(lineno, 0, line, curses.A_REVERSE)
       else:
         win.addstr(lineno, 0, line, 0)
