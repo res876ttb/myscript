@@ -24,5 +24,6 @@ while True:
   if args.log and who != b'': 
     f.write(date.decode('utf-8'))
     f.write(who.decode('utf-8'))
+  win.print('')
   win.flush()
   time.sleep(2)
