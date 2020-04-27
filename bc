@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+import sys
+
+while True:
+  x = sys.stdin.readline()
+  x = x.strip()
+  if x == "":
+    break
+  r = eval(x)
+  if type(r) == type(True):
+    if r:
+      print(1)
+    else:
+      print(0)
+  else:
+    print(r)

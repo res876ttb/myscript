@@ -3,7 +3,7 @@
 import subprocess
 import time
 import argparse
-import pylib.win as win
+from datetime import datetime
 
 parser = argparse.ArgumentParser()
 parser.add_argument('node', help='The node to be monitored. ex: apollo32,apollo33')
@@ -15,8 +15,6 @@ dumpPath = args.dump
 dump = False
 if dumpPath:
   dump = True
-
-win.init()
 
 ibstats = {}
 for node in nodes:
@@ -52,6 +50,7 @@ while True:
     fp.write('\n')
     fp.write('%f\n' % time.time())
   stringBuff = []
+  print("===== [%s] =====" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")))
   for i in range(len(lines)):
     for node in nodes:
       if node in lines[i]:
@@ -69,7 +68,6 @@ while True:
           fp.write('%s,%f,%f\n' % (node, sendSpeed, recvSpeed))
   stringBuff.sort()
   for line in stringBuff:
-    win.print(line)
-  win.flush()
+    print(line)
   time.sleep(1)
 
